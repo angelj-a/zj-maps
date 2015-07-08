@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+   <meta charset="utf-8" />
+   <head>
+      <title>Mapa de la Ciudad Autónoma de Buenos Aires</title>
+      <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
+      <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
+      <link rel=stylesheet href="css/styles.css" type="text/css">
+      
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />    
+      
+   </head>
+   <body>
+      <div id="map"></div>
+      
+      <script type="text/javascript" src="comunas/barrios.js"></script>
+      <script>
+         var map = L.map('map', {
+            //scrollWheelZoom: false
+         });
+         
+         map.fitBounds([
+           [-34.705361, -58.531521],
+           [-34.526633, -58.335108] 
+         ]);
+          
+         var layer = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{
+           attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+         });         
+         
+         map.addLayer(layer);
+         
+         
+         // Info         
+         var info = L.control();
+
+         info.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+         };
+
+         info.update = function (props) {
+            this._div.innerHTML = '<h4>Lugares de trabajo de las publicaciones de Zonajobs en el sector Programación</h4>' +  (props ?
+               '<b>' + props.name + '</b><br />' + props.publications + ' '
+               : '');
+         };
+
+         info.addTo(map);               
+
+         // Colouring
+         function getColor(d) {
+            return d >= 20  ? '#BD0026' :
+                   d >= 15  ? '#E31A1C' :
+                   d >= 10  ? '#FC4E2A' :
+                   d >= 5   ? '#FD8D3C' :
+                   d >= 3   ? '#FEB24C' :
+                   d >= 2   ? '#FED976' :
+                   d >= 1   ? '#FFEDA0' :
+                             '#FFFFFF';
+         }
+         
+         function style(feature) {
+            return {
+               weight: 2,
+               opacity: 1,
+               color: 'white',
+               dashArray: '3',
+               fillOpacity: 0.7,
+               fillColor: getColor(feature.properties.publications)
+            };
+         }         
+         
+         function highlightFeature(e) {
+            var layer = e.target;
+
+            layer.setStyle({
+               weight: 5,
+               color: '#666',
+               dashArray: '',
+               fillOpacity: 0.7
+            });
+
+            if (!L.Browser.ie && !L.Browser.opera) {
+               layer.bringToFront();
+            }
+
+            info.update(layer.feature.properties);
+         }         
+         
+         
+         var geojson;
+         
+         function resetHighlight(e) {
+            geojson.resetStyle(e.target);
+            info.update();
+         }
+
+
+         function onEachFeature(feature, layer) {
+            layer.on({
+               mouseover: highlightFeature,
+               mouseout: resetHighlight
+            });
+         }         
+         
+         geojson = L.geoJson(barriosData,{
+                        style: style,
+                        onEachFeature: onEachFeature
+                  }).addTo(map);
+         
+         
+         // Legend 
+         var legend = L.control({position: 'bottomright'});
+
+         legend.onAdd = function (map) {
+
+            var div = L.DomUtil.create('div', 'info legend'),
+               grades = [0, 1, 2, 3, 5, 10, 15, 20],
+               labels = [],
+               from, to;
+
+            for (var i = 0; i < grades.length; i++) {
+               from = grades[i];
+               to = grades[i + 1] - 1;
+               
+               label = '<i style="background:' + getColor(from) + '"></i> ' + from;
+               if (to) {
+                  if (to != from) {
+                     label += '&ndash;' + to;
+                  }
+               } else {
+                  if (to !== 0) {
+                     label += '+';
+                  }
+               }
+                     
+
+               labels.push( label );
+            }
+
+
+            div.innerHTML = labels.join('<br>');
+            return div;
+         };
+
+         legend.addTo(map);         
+
+      
+      </script>
+   </body>
+</html>
